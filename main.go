@@ -28,10 +28,13 @@ func init() {
 		return
 	}
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+
 	DbQueries := database.New(db);
 	Config = &models.ApiConfig{
 		FileServerHits: atomic.Int32{},
 		DbQueries: DbQueries,
+		JWT_SECRET: jwtSecret,
 	}
 }
 
@@ -44,12 +47,16 @@ func main() {
 
 	serveMux.HandleFunc("POST /api/users", handlers.CreateUser(Config));
 	serveMux.HandleFunc("GET /api/users", handlers.GetUsers(Config));
+	serveMux.HandleFunc("PUT /api/users", handlers.UpdateUser(Config))
 
 	serveMux.HandleFunc("POST /api/login", handlers.Login(Config));
+	serveMux.HandleFunc("POST /api/refresh", handlers.RefreshAccessToken(Config));
+	serveMux.HandleFunc("POST /api/revoke", handlers.RevokeRefreshToken(Config))
 
 	serveMux.HandleFunc("POST /api/chirps", handlers.CreateChirp(Config));
 	serveMux.HandleFunc("GET /api/chirps", handlers.GetChirps(Config));
 	serveMux.HandleFunc("GET /api/chirps/{id}", handlers.GetChirpById(Config));
+	serveMux.Handle("DELETE /api/chirps/{chirpId}", handlers.DeleteChirp(Config))
 
 	serveMux.Handle("GET /admin/metrics", handlers.GetMetrics(Config))
 	serveMux.Handle("POST /admin/reset", handlers.Reset(Config))

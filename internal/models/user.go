@@ -14,6 +14,8 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
 	password  string	`json:"password"`
+	JwtToken  string	`json:"token,omitempty"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 }
 
 type Chirp struct {

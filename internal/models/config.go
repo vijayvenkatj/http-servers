@@ -10,4 +10,5 @@ type ApiConfig struct {
 	FileServerHits atomic.Int32
 	PlainTextReqs  atomic.Int32
 	DbQueries	*database.Queries
+	JWT_SECRET	string
 }

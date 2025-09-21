@@ -12,3 +12,6 @@ INSERT INTO chirps (id, user_id, body, created_at, updated_at) VALUES (
     NOW(),
     NOW()
 ) RETURNING *;
+
+-- name: DeleteChirp :exec
+DELETE FROM chirps WHERE id = $1; 

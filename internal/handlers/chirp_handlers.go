@@ -6,53 +6,59 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vijayvenkatj/http-servsers/helpers"
+	"github.com/vijayvenkatj/http-servsers/internal/auth"
 	"github.com/vijayvenkatj/http-servsers/internal/database"
 	"github.com/vijayvenkatj/http-servsers/internal/models"
 )
 
-
 func CreateChirp(config *models.ApiConfig) http.HandlerFunc {
-	return (func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type","application/json");
+    return func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "application/json")
 
-		var requestBody struct {
-			Body	string `json:"body"`
-			UserId	uuid.UUID `json:"user_id"`
-		};
+        var requestBody struct {
+            Body string `json:"body"`
+        }
 
-		err := json.NewDecoder(r.Body).Decode(&requestBody);
-		if err != nil {
-			helpers.RespondWithError(w,500,"Unable to decode body!");
-			return
-		}
+        if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+            helpers.RespondWithError(w, 400, "Invalid request body")
+            return
+        }
 
-		chirpBody, err := helpers.ValidateChirp(requestBody.Body);
-		if err != nil {
-			helpers.RespondWithError(w,400,"Unable to validate chirp!");
-			return
-		}
+        authToken := auth.GetBearerToken(r.Header)
+        userID, err := auth.ValidateJWT(authToken, config.JWT_SECRET)
+        if err != nil {
+            helpers.RespondWithError(w, 401, "Unauthorized")
+            return
+        }
 
-		chirpData, err := config.DbQueries.CreateChirp(r.Context(),
-			database.CreateChirpParams{
-				UserID: requestBody.UserId,
-				Body: chirpBody,
-			},
-		)
-		if err != nil {
-			helpers.RespondWithError(w,400,"Unable to create chirp!");
-			return
-		}
+        chirpBody, err := helpers.ValidateChirp(requestBody.Body)
+        if err != nil {
+            helpers.RespondWithError(w, 400, "Invalid chirp")
+            return
+        }
 
-		var chirp models.Chirp = models.Chirp {
-			ID: chirpData.ID,
-			UserId: chirpData.UserID,
-			Body: chirpData.Body,
-			CreatedAt: chirpData.CreatedAt.Time,
-			UpdatedAt: chirpData.UpdatedAt.Time,
-		}
+        chirpData, err := config.DbQueries.CreateChirp(
+            r.Context(),
+            database.CreateChirpParams{
+                UserID: userID,
+                Body:   chirpBody,
+            },
+        )
+        if err != nil {
+            helpers.RespondWithError(w, 500, "Could not create chirp")
+            return
+        }
 
-		helpers.RespondWithJSON(w,201,chirp);
-	})
+        chirp := models.Chirp{
+            ID:        chirpData.ID,
+            UserId:    chirpData.UserID,
+            Body:      chirpData.Body,
+            CreatedAt: chirpData.CreatedAt.Time,
+            UpdatedAt: chirpData.UpdatedAt.Time,
+        }
+
+        helpers.RespondWithJSON(w, 201, chirp)
+    }
 }
 
 
@@ -105,5 +111,48 @@ func GetChirpById(config *models.ApiConfig) http.HandlerFunc {
 			Body:      chirp.Body,
 			UserId:    chirp.UserID,
 		})
+	}
+}
+
+func DeleteChirp(config *models.ApiConfig) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		id := r.PathValue("chirpId")
+		chirpId, err := uuid.Parse(id)
+		if err != nil {
+			helpers.RespondWithError(w, 400, "Invalid chirp ID format")
+			return
+		}
+
+		accessToken := auth.GetBearerToken(r.Header)
+		if accessToken == "" {
+			helpers.RespondWithError(w, 401, "Unauthorised")
+			return
+		}
+
+		userId, err := auth.ValidateJWT(accessToken,config.JWT_SECRET);
+		if err != nil {
+			helpers.RespondWithError(w,403,"Forbidden")
+			return 
+		}
+
+		chirp, err := config.DbQueries.GetChirpById(r.Context(),chirpId);
+		if err != nil {
+			helpers.RespondWithError(w,404,"Not found");
+			return
+		}
+
+		if chirp.UserID != userId {
+			helpers.RespondWithError(w,403,"Forbidden")
+			return 
+		}
+
+		err = config.DbQueries.DeleteChirp(r.Context(), chirpId);
+		if err != nil {
+			helpers.RespondWithError(w,500,"Error deleting chirp!");
+			return
+		}
+
+		w.WriteHeader(204);
 	}
 }
