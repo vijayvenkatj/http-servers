@@ -29,12 +29,14 @@ func init() {
 	}
 
 	jwtSecret := os.Getenv("JWT_SECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
 
 	DbQueries := database.New(db);
 	Config = &models.ApiConfig{
 		FileServerHits: atomic.Int32{},
 		DbQueries: DbQueries,
 		JWT_SECRET: jwtSecret,
+		POLKA_KEY: polkaKey,
 	}
 }
 
@@ -44,6 +46,8 @@ func main() {
 	serveMux := http.NewServeMux();
 
 	serveMux.Handle("/app/", middlewares.HandleMetricMiddleware(http.StripPrefix("/app",http.FileServer(http.Dir("./"))),Config));
+
+	serveMux.HandleFunc("POST /api/polka/webhooks", handlers.UpgradeUser(Config))
 
 	serveMux.HandleFunc("POST /api/users", handlers.CreateUser(Config));
 	serveMux.HandleFunc("GET /api/users", handlers.GetUsers(Config));

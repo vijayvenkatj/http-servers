@@ -74,6 +74,7 @@ func Login(config *models.ApiConfig) http.HandlerFunc {
             UpdatedAt: userData.UpdatedAt.Time,
             JwtToken:  jwtToken,
             RefreshToken: refreshToken,
+            IsChirpyRed: userData.IsChirpyRed,
         }
         
 
@@ -170,6 +171,7 @@ func UpdateUser(config *models.ApiConfig) http.HandlerFunc {
         var user models.User = models.User{
             ID: userData.ID,
             Email: userData.Email,
+            IsChirpyRed: userData.IsChirpyRed,
             CreatedAt: userData.CreatedAt.Time,
             UpdatedAt: userData.UpdatedAt.Time,
         }

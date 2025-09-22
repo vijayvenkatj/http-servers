@@ -11,4 +11,5 @@ type ApiConfig struct {
 	PlainTextReqs  atomic.Int32
 	DbQueries	*database.Queries
 	JWT_SECRET	string
+	POLKA_KEY	string
 }

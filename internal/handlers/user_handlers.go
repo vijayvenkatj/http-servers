@@ -3,6 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/google/uuid"
 	"github.com/vijayvenkatj/http-servsers/helpers"
 	"github.com/vijayvenkatj/http-servsers/internal/auth"
 	"github.com/vijayvenkatj/http-servsers/internal/database"
@@ -72,3 +74,46 @@ func GetUsers(config *models.ApiConfig) http.HandlerFunc {
 	}
 }
 
+
+type DataStruct struct {
+	UserId string	`json:"user_id"`
+}
+
+func UpgradeUser(config *models.ApiConfig) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		polkaKey := auth.GetAPIToken(r.Header);
+		if polkaKey == "" || polkaKey != config.POLKA_KEY {
+			helpers.RespondWithError(w,401,"Unauthorised")
+			return
+		}
+
+		var requestBody struct {
+			Event string `json:"event"`
+			Data  DataStruct `json:"data"`
+		}
+
+		err := json.NewDecoder(r.Body).Decode(&requestBody);
+		if err != nil {
+			helpers.RespondWithError(w,400,"Bad request");
+			return
+		}
+
+		respUserId, err := uuid.Parse(requestBody.Data.UserId);
+		if err != nil {
+			helpers.RespondWithError(w,400,"Bad request");
+			return
+		}
+
+
+		if requestBody.Event == "user.upgraded" {
+			err = config.DbQueries.UpgradeUser(r.Context(), respUserId);
+			if err != nil {
+				helpers.RespondWithError(w,404,"User not upgraded")
+				return
+			}
+		}
+
+	    w.WriteHeader(204)
+	}
+}

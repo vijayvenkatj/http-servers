@@ -1,8 +1,12 @@
 -- name: GetChirps :many 
 SELECT * FROM chirps ORDER BY created_at;
 
+-- name: GetChirpsByAuthor :many
+SELECT * FROM chirps WHERE user_id = $1 ORDER BY created_at;
+
 -- name: GetChirpById :one
 SELECT * FROM chirps WHERE id = $1;
+
 
 -- name: CreateChirp :one
 INSERT INTO chirps (id, user_id, body, created_at, updated_at) VALUES (

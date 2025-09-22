@@ -16,6 +16,7 @@ type User struct {
 	password  string	`json:"password"`
 	JwtToken  string	`json:"token,omitempty"`
 	RefreshToken string `json:"refresh_token,omitempty"`
+	IsChirpyRed	bool	`json:"is_chirpy_red"`
 }
 
 type Chirp struct {

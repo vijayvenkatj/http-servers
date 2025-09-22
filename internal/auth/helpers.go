@@ -40,3 +40,17 @@ func GetBearerToken(header http.Header) string {
 
     return parts[1]
 }
+
+func GetAPIToken(header http.Header) string {
+    authorizationHeader := header.Get("Authorization")
+    if authorizationHeader == "" {
+        return ""
+    }
+
+    parts := strings.SplitN(authorizationHeader, " ", 2)
+    if len(parts) != 2 || !strings.EqualFold(parts[0], "ApiKey") {
+        return ""
+    }
+
+    return parts[1]
+}

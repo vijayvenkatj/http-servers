@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 
 	"github.com/google/uuid"
 	"github.com/vijayvenkatj/http-servsers/helpers"
@@ -66,10 +67,42 @@ func GetChirps(config *models.ApiConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type","application/json");
 
-		chirpsData, err := config.DbQueries.GetChirps(r.Context());
-		if err != nil {
-			helpers.RespondWithError(w,400,"Error getting all users!")
-			return
+		var chirpsData []database.Chirp;
+
+		author_id := r.URL.Query().Get("author_id");
+
+		var authorUUID uuid.UUID
+		var err error
+
+		if author_id != "" {
+			authorUUID, err = uuid.Parse(author_id)
+			if err != nil {
+				helpers.RespondWithError(w,400,"Error parsing author_id!")
+				return
+			}
+			chirpsData, err = config.DbQueries.GetChirpsByAuthor(r.Context(), authorUUID)
+			if err != nil {
+				helpers.RespondWithError(w,400,"Error getting chirps by author!")
+				return
+			}
+		} else {
+			chirpsData, err = config.DbQueries.GetChirps(r.Context())
+			if err != nil {
+				helpers.RespondWithError(w,400,"Error getting all chirps!")
+				return
+			}
+		}
+
+		sorting := r.URL.Query().Get("sort");
+
+		if sorting == "desc" {
+			sort.Slice(chirpsData, func(i, j int) bool {
+				return chirpsData[i].CreatedAt.Time.After(chirpsData[j].CreatedAt.Time)
+			})
+		} else {
+			sort.Slice(chirpsData, func(i, j int) bool {
+				return chirpsData[j].CreatedAt.Time.After(chirpsData[i].CreatedAt.Time)
+			})
 		}
 
 		var chirps []models.Chirp

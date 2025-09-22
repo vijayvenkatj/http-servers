@@ -20,3 +20,7 @@ DELETE FROM users;
 
 -- name: DeleteUser :one
 DELETE FROM users WHERE id = $1 RETURNING *;
+
+-- name: UpgradeUser :exec
+
+UPDATE users SET is_chirpy_red = true WHERE id = $1;
